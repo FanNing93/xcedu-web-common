@@ -8,6 +8,7 @@ const sass = require('gulp-sass')
 const babel = require('gulp-babel')
 const wrap = require('gulp-exports')
 const replace = require('gulp-replace')
+const rev = require('gulp-rev');
 const args = require('yargs').argv
 
 sass.compiler = require('node-sass')
@@ -43,7 +44,13 @@ function uglifyVendor () {
     .pipe(uglify())
     .pipe(dest('./build'))
 }
-
+function vendorPolyfill () {
+  return src([
+    './polyfill/minified.js'
+  ]).pipe(dest('dist/polyfill'))
+    .pipe(gizp({ threshold: '1kb', level: 7 }))
+    .pipe(dest('dist/polyfill'))
+}
 function vendorSpa () {
   return src([
     './node_modules/single-spa/lib/umd/single-spa.min.js',
@@ -134,10 +141,12 @@ function xceduTheme (theme) {
       './src/pages/navbar.scss',
       './src/pages/user.scss',
       './src/pages/email.scss',
-      './src/pages/testBank.scss'
+      './src/pages/testBank.scss',
+      './src/pages/forum.scss'
     ])
       .pipe(concat(`common-${theme}.scss`))
       .pipe(sass({ outputStyle: 'compressed' }))
+      .pipe(rev())
       .pipe(dest('dist/widget'))
       .pipe(gizp({ level: 7 }))
       //  当前 css 较小， 所以去掉 threshold 统一打包出来的文件名称
@@ -161,4 +170,4 @@ function xcedCommonAssets () {
 
 const xceduCommon = parallel(xcedCommonScripts, xcedCommonTheme, xcedCommonAssets)
 
-exports.build = parallel(vendorFramework, vendorElement, xceduCommon)
+exports.build = parallel(vendorFramework, vendorElement, vendorPolyfill, xceduCommon)
